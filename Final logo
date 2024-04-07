@@ -1,0 +1,95 @@
+import json
+from PIL import Image
+import requests
+from serpapi import GoogleSearch
+params = {
+  "api_key": "42b83f4b78f426c6d280f209e8a13ffcce9c467d99c6ecce9191d482bd69c95a",
+  "engine": "google_images",
+  "google_domain": "google.com",
+  "q": "",
+  "hl": "en",
+  "gl": "us"
+}
+from io import BytesIO
+import requests
+from cmu_graphics import *
+
+def onAppStart(app):
+    restart(app)
+
+def restart(app):
+    app.imageLinks=[]
+    app.width = 800
+    app.height = 800
+    app.string=""
+    app.selectImage=False
+    app.selectedImageIndex=None
+
+
+def getLinks(app):
+    search = GoogleSearch(params)
+    results = search.get_dict()
+    count=0
+    for image_result in search.get_dict()['images_results']:
+        link = image_result["original"]
+        app.imageLinks.append(link)
+        try:
+            count+=1
+            if count>=16:
+                break
+        except:
+            pass
+
+def drawImages(app):
+    if params['q']!="":
+        getLinks(app)
+    cols = 4
+    wMargin = 50
+    hMargin = 50
+    spacing = 30
+    cardWidth = 150
+    cardHeight = 150
+    for i in range(len(app.imageLinks)):
+        try:
+            left = wMargin + (i%cols) * (cardWidth + spacing)
+            top = (hMargin + (i//cols) * (cardHeight + spacing))
+            imageWidth, imageHeight = getImageSize(app.imageLinks[i])
+            factor=imageWidth//(cardWidth-10)
+            drawImage(app.imageLinks[i] ,left,top, height = imageHeight//factor, width = imageWidth//factor)
+            drawLabel(i+1,left,top, size = 16, bold = True)
+        except:
+            pass
+def redrawAll(app):
+    if app.selectImage==True:
+        drawImages(app)
+    drawLabel(app.string,app.width/2,30,align = 'center',size = 50, bold=True)
+    if app.selectedImageIndex!=None:
+        makeLogo(app)
+
+def onKeyPress(app,key):
+    if key=="enter":
+        params["q"]=f"{app.string} clipart"
+        app.selectImage=not app.selectImage
+    elif key=="backspace":
+        app.string=app.string[:-1]
+    elif key.isalpha() and len(key) == 1:
+        app.string+=key
+    elif key.isdigit() and app.selectImage==True:
+        if int(key)>=1 and int(key)<=len(app.imageLinks):
+            app.selectedImageIndex=int(key)-1
+            app.imageLinks=[app.imageLinks[app.selectedImageIndex]]
+    elif key=="escape":
+        restart(app)
+    
+
+def makeLogo(app):
+    left = app.width/2
+    top = app.height/2
+    imageWidth, imageHeight = getImageSize(app.imageLinks[app.selectedImageIndex])
+    factor=imageWidth//(200)
+    drawImage(app.imageLinks[0],left,top, height = imageHeight//factor, width = imageWidth//factor, align = 'center')
+
+
+def main():
+    runApp()
+main()
